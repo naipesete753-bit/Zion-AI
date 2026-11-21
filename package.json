@@ -1,0 +1,24 @@
+{
+  "name": "zion-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zion AI — agente conversacional com arquitetura pronta para provedores de IA e serviços gratuitos.",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:api": "node --watch server.mjs",
+    "build": "vite build",
+    "start": "node server.mjs",
+    "check": "npm run build"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "concurrently": "^9.2.1",
+    "vite": "^7.1.3"
+  }
+}
