@@ -47,6 +47,44 @@ A interface mostra se o provedor está conectado. As chaves são lidas apenas po
 
 O schema vem com Row Level Security: cada pessoa só acessa as suas próprias conversas e mensagens.
 
+## Aplicativo Android (APK)
+
+O Zion também é um aplicativo Android nativo via **Capacitor 7**. O código web é empacotado no APK, portanto a mesma interface funciona no navegador e no telefone.
+
+### Gerar um APK de teste
+
+Pré-requisitos locais: Node 22+, JDK 17 e Android SDK com API 35.
+
+```bash
+npm install
+npm run apk:debug
+```
+
+O arquivo instalável de teste será criado em:
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+`npm run android:sync` recompila o frontend e copia os arquivos atualizados para o projeto Android. Para abrir o projeto nativo no Android Studio:
+
+```bash
+npm run android:open
+```
+
+Há também um workflow de GitHub Actions que monta o APK de teste e o publica como artefato **zion-ai-debug-apk** a cada push/PR. Um APK `debug` pode ser instalado para testes, mas uma publicação na Play Store exige assinatura de release e uma chave que não deve ser versionada.
+
+### Conectar o APK à IA
+
+O APK nunca recebe chaves de OpenRouter ou Groq. Publique `server.mjs` em uma URL HTTPS, guarde as chaves nesse servidor e configure a URL pública em **Configurações** dentro do app. Alternativamente, defina no momento do build:
+
+```dotenv
+VITE_API_BASE_URL=https://api.seu-dominio.example
+APP_ALLOWED_ORIGINS=https://app.seu-dominio.example,capacitor://localhost
+```
+
+Sem uma URL de API, o aplicativo inicia em modo demonstração local de forma segura. A API aceita a origem `capacitor://localhost` e `https://localhost` para o WebView Android, além das origens explícitas em `APP_ALLOWED_ORIGINS`.
+
 ## Arquitetura
 
 ```text

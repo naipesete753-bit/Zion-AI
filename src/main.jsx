@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { freeStack, providerOptions, starterPrompts } from './catalog'
+import { getInitialApiBaseUrl, normalizeApiBaseUrl, readAgentHealth, requestAgent } from './api'
 import './styles.css'
 
 const welcomeMessage = {
@@ -52,6 +53,7 @@ function renderText(text) {
 
 function App() {
   const [provider, setProvider] = useState('openrouter')
+  const [apiBaseUrl, setApiBaseUrl] = useState(getInitialApiBaseUrl)
   const [messages, setMessages] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('zion-messages'))
@@ -78,11 +80,12 @@ function App() {
   }, [messages])
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((response) => response.ok ? response.json() : Promise.reject())
+    localStorage.setItem('zion-api-base-url', apiBaseUrl)
+    setHealth((current) => ({ ...current, loading: true }))
+    readAgentHealth(apiBaseUrl)
       .then((data) => setHealth({ loading: false, configured: data.configured || [] }))
       .catch(() => setHealth({ loading: false, configured: [] }))
-  }, [])
+  }, [apiBaseUrl])
 
   function notify(message) {
     setToast(message)
@@ -106,13 +109,11 @@ function App() {
     setIsSending(true)
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ provider, messages: outgoing.map(({ role, content: messageContent }) => ({ role, content: messageContent })) }),
+      const data = await requestAgent({
+        apiBaseUrl,
+        provider,
+        messages: outgoing.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Não foi possível consultar o agente.')
       setMessages((current) => [...current, {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -237,17 +238,22 @@ function App() {
 
     {mobileNav && <button className="sidebar-scrim" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
     {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}
-    {settingsOpen && <SettingsModal provider={provider} setProvider={setProvider} health={health} onClose={() => setSettingsOpen(false)} />}
+    {settingsOpen && <SettingsModal provider={provider} setProvider={setProvider} health={health} apiBaseUrl={apiBaseUrl} setApiBaseUrl={setApiBaseUrl} onClose={() => setSettingsOpen(false)} />}
   </div>
 }
 
-function SettingsModal({ provider, setProvider, health, onClose }) {
+function SettingsModal({ provider, setProvider, health, apiBaseUrl, setApiBaseUrl, onClose }) {
   const selected = providerOptions.find((item) => item.id === provider)
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" onMouseDown={(event) => event.stopPropagation()}>
       <header><div><p className="eyebrow">CONFIGURAÇÃO</p><h2 id="settings-title">Conecte o cérebro do Zion</h2><p className="modal-subtitle">A chave fica somente no servidor. O navegador conversa sempre pela rota <code>/api/chat</code>.</p></div><button className="icon-button" onClick={onClose} aria-label="Fechar"><Icon name="close" /></button></header>
       <div className="provider-options">{providerOptions.map((item) => <button className={`provider-option ${provider === item.id ? 'selected' : ''}`} key={item.id} onClick={() => setProvider(item.id)}><span className="provider-radio" /><span><b>{item.name}</b><small>{item.model}</small></span>{health.configured.includes(item.id) && <em>conectado</em>}</button>)}</div>
-      <div className="env-instruction"><div className="code-title"><span>1</span> No arquivo <code>.env</code>, defina:</div><pre><code>{selected.env}=sua_chave_aqui</code></pre><div className="code-title"><span>2</span> Reinicie <code>npm run dev</code> e atualize esta página.</div></div>
+      <div className="mobile-api-field">
+        <label htmlFor="api-base-url">URL pública da API <span>necessária no APK</span></label>
+        <input id="api-base-url" type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck="false" placeholder="https://api.seu-dominio.com" value={apiBaseUrl} onChange={(event) => setApiBaseUrl(normalizeApiBaseUrl(event.target.value))} />
+        <p>Use uma URL HTTPS do servidor Zion. Vazio mantém a rota relativa no navegador e ativa demonstração local no APK.</p>
+      </div>
+      <div className="env-instruction"><div className="code-title"><span>1</span> No servidor, defina:</div><pre><code>{selected.env}=sua_chave_aqui</code></pre><div className="code-title"><span>2</span> Publique a API, informe a URL acima no APK e reinicie o servidor.</div></div>
       <div className="security-callout"><Icon name="shield" size={18} /><p><b>Segurança por padrão.</b> Não cole chaves no chat, em commits ou no frontend. O <code>.env</code> já é ignorado pelo Git.</p></div>
       <footer><a href="https://github.com/ripienaar/free-for-dev" target="_blank" rel="noreferrer">Explorar serviços gratuitos <Icon name="external" size={14} /></a><button className="primary-button" onClick={onClose}>Concluído <Icon name="check" size={16} /></button></footer>
     </section>

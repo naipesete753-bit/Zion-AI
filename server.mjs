@@ -2,6 +2,12 @@ import { createServer } from 'node:http'
 
 const port = Number(process.env.PORT || 8787)
 const MAX_BODY_SIZE = 1_000_000
+const configuredOrigins = new Set(
+  (process.env.APP_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+)
 
 const providers = {
   openrouter: {
@@ -24,6 +30,13 @@ Estruture respostas complexas com: decisão recomendada, motivo, etapas concreta
 
 function json(response, status = 200) {
   return { status, headers: { 'content-type': 'application/json; charset=utf-8' }, body: JSON.stringify(response) }
+}
+
+function isAllowedOrigin(origin) {
+  const localOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+  const previewOrigin = /^https:\/\/\d+-[a-z0-9-]+\.e2b\.app$/
+  // Capacitor pode usar capacitor://localhost ou https://localhost no WebView.
+  return configuredOrigins.has(origin) || localOrigin.test(origin) || previewOrigin.test(origin) || origin === 'capacitor://localhost'
 }
 
 function readJson(request) {
@@ -103,9 +116,7 @@ async function generateAnswer({ messages, providerId }) {
 
 const server = createServer(async (request, response) => {
   const origin = request.headers.origin || ''
-  const localOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
-  const previewOrigin = /^https:\/\/\d+-[a-z0-9-]+\.e2b\.app$/
-  if (origin && (localOrigin.test(origin) || previewOrigin.test(origin))) {
+  if (origin && isAllowedOrigin(origin)) {
     response.setHeader('access-control-allow-origin', origin)
     response.setHeader('vary', 'origin')
   }
