@@ -54,13 +54,10 @@ jobs:
           ./gradlew assembleDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/zion-gradle.log"
           build_status=${PIPESTATUS[0]}
           if [ "$build_status" -ne 0 ]; then
-            echo "::error file=android/build.gradle,line=1::Android build failed. Tail follows in annotations."
-            tail -n 30 "$RUNNER_TEMP/zion-gradle.log" | while IFS= read -r line; do
-              safe_line=${line//'%'/'%25'}
-              safe_line=${safe_line//$'\n'/'%0A'}
-              safe_line=${safe_line//$'\r'/'%0D'}
-              echo "::error file=android/build.gradle,line=1::${safe_line}"
-            done
+            diagnostic=$(tail -n 100 "$RUNNER_TEMP/zion-gradle.log" | tr '\n' ' ' | cut -c1-6000)
+            diagnostic=${diagnostic//'%'/'%25'}
+            diagnostic=${diagnostic//$'\r'/'%0D'}
+            echo "::error file=android/build.gradle,line=1::${diagnostic}"
             exit "$build_status"
           fi
       - name: Upload debug APK
