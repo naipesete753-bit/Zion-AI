@@ -1,9 +1,0 @@
-node_modules
-.env
-.env.local
-dist
-.DS_Store
-*.log
-
-# O APK de distribuição é publicado pela automação; não adicione builds locais por acidente.
-downloads/*.apk

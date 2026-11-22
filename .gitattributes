@@ -1,3 +1,0 @@
-# Mantém o wrapper Windows utilizável sem introduzir CRLF como whitespace no diff.
-android/gradlew.bat text eol=crlf
-downloads/*.apk binary
