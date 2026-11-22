@@ -4,6 +4,7 @@ import { freeStack, providerOptions, starterPrompts } from './catalog'
 import { getInitialApiBaseUrl, normalizeApiBaseUrl, readAgentHealth, requestAgent } from './api'
 import './styles.css'
 import './mobile.css'
+import './creation.css'
 
 const welcomeMessage = {
   id: 'welcome',
@@ -110,6 +111,7 @@ function App() {
   }
 
   function resetChat() {
+    setActiveNav('Chat')
     setMessages([welcomeMessage])
     setDraft('')
     notify('Nova conversa iniciada')
@@ -155,8 +157,13 @@ function App() {
 
   function selectNav(label) {
     setActiveNav(label)
-    if (label !== 'Chat') notify(`${label} estará disponível na próxima iteração`)
+    if (!['Chat', 'Projetos'].includes(label)) notify(`${label} estará disponível na próxima iteração`)
     setMobileNav(false)
+  }
+
+  function startCreation(instruction) {
+    setActiveNav('Chat')
+    window.setTimeout(() => sendMessage(instruction), 0)
   }
 
   return <div className="app-shell">
@@ -191,7 +198,7 @@ function App() {
       <header className="topbar">
         <div className="topbar-left">
           <button className="icon-button mobile-menu" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Icon name="grid" /></button>
-          <div className="breadcrumb"><span>Workspace pessoal</span><Icon name="chevron" size={14} /><b>Nova conversa</b></div>
+          <div className="breadcrumb"><span>Workspace pessoal</span><Icon name="chevron" size={14} /><b>{activeNav === 'Projetos' ? 'Criar projeto' : 'Nova conversa'}</b></div>
         </div>
         <div className="topbar-actions">
           <button className="status-pill" onClick={() => setSettingsOpen(true)} title="Configurar provedor">
@@ -251,12 +258,70 @@ function App() {
           <button className="configure-banner" onClick={() => setSettingsOpen(true)}><span><Icon name="settings" size={16} /></span><div><b>Configurar agente</b><small>Modelo, chaves e memória</small></div><Icon name="chevron" size={15} /></button>
         </aside>}
       </div>
+      {activeNav === 'Projetos' && <CreationWorkspace isLive={isLive} onCreate={startCreation} onBack={() => setActiveNav('Chat')} />}
     </main>
 
     {mobileNav && <button className="sidebar-scrim" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
     {toast && <div className="toast"><Icon name="check" size={16} /> {toast}</div>}
     {settingsOpen && <SettingsModal provider={provider} setProvider={setProvider} health={health} apiBaseUrl={apiBaseUrl} setApiBaseUrl={setApiBaseUrl} onClose={() => setSettingsOpen(false)} />}
   </div>
+}
+
+const creationOptions = [
+  { id: 'app', glyph: '▣', title: 'Aplicativo', detail: 'MVP para celular ou web', starter: 'um aplicativo que resolva ' },
+  { id: 'site', glyph: '◌', title: 'Site ou landing page', detail: 'Site para apresentar ou vender', starter: 'um site para ' },
+  { id: 'automation', glyph: '↯', title: 'Automação', detail: 'Fluxo para economizar tempo', starter: 'uma automação que ' },
+  { id: 'agent', glyph: '✦', title: 'Agente de IA', detail: 'Assistente com memória e ferramentas', starter: 'um agente de IA que ' },
+]
+
+function CreationWorkspace({ isLive, onCreate, onBack }) {
+  const [selectedType, setSelectedType] = useState('app')
+  const [brief, setBrief] = useState('')
+  const [features, setFeatures] = useState({ auth: true, memory: true, integrations: false })
+  const selected = creationOptions.find((option) => option.id === selectedType)
+
+  function toggleFeature(feature) {
+    setFeatures((current) => ({ ...current, [feature]: !current[feature] }))
+  }
+
+  function createProject() {
+    const selectedFeatures = [
+      features.auth && 'autenticação de usuários',
+      features.memory && 'dados e memória persistente',
+      features.integrations && 'integrações externas e automações',
+    ].filter(Boolean)
+
+    const goal = brief.trim() || `${selected.starter}resolver uma necessidade real de pessoas usuárias.`
+    onCreate(`[MODO CRIAÇÃO — AGENTE COMPLEXO]\n\nQuero criar ${goal}\n\nTipo de projeto: ${selected.title}.\nCapacidades desejadas: ${selectedFeatures.length ? selectedFeatures.join(', ') : 'um MVP simples, sem integrações extras'}.\n\nTrabalhe como um agente de produto e engenharia. Produza uma entrega executável em etapas: \n1. objetivo, público e métrica de sucesso;\n2. requisitos do MVP e o que ficará fora da primeira versão;\n3. arquitetura recomendada usando a stack acessível do Zion;\n4. mapa de telas, dados e endpoints;\n5. árvore de arquivos e os trechos de código essenciais;\n6. plano de implementação priorizado, com testes e deploy.\n\nSe faltar uma decisão crítica, assuma um padrão seguro e explique a escolha. Não diga que alterou arquivos ou publicou algo que você não executou.`)
+  }
+
+  return <section className="creation-workspace" aria-label="Criar um projeto com Zion">
+    <div className="creation-scroll">
+      <div className="creation-inner">
+        <button className="creation-back" onClick={onBack}><Icon name="chevron" size={15} /> Voltar para conversa</button>
+        <div className="creation-heading">
+          <div><p className="eyebrow">MODO CRIAÇÃO</p><h1>Do zero à próxima ação.</h1><p>Descreva sua ideia e o Zion transforma em uma especificação técnica, plano e base de código.</p></div>
+          <span className={`creation-status ${isLive ? 'live' : ''}`}><i />{isLive ? 'Agente conectado' : 'Planejamento local'}</span>
+        </div>
+
+        <div className="creation-step"><span>01</span><div><b>O que você quer criar?</b><small>Escolha um ponto de partida. Você pode mudar tudo no plano.</small></div></div>
+        <div className="creation-types">{creationOptions.map((option) => <button key={option.id} onClick={() => setSelectedType(option.id)} className={`creation-type ${selectedType === option.id ? 'selected' : ''}`}><span>{option.glyph}</span><b>{option.title}</b><small>{option.detail}</small><i><Icon name="check" size={13} /></i></button>)}</div>
+
+        <div className="creation-step"><span>02</span><div><b>Conte a ideia</b><small>Fale do problema, para quem é e o resultado que espera.</small></div></div>
+        <label className="creation-brief"><span>BRIEF DO PROJETO</span><textarea value={brief} onChange={(event) => setBrief(event.target.value)} rows="4" placeholder={`Ex.: Quero ${selected.starter}ajudar pequenos negócios a responder clientes pelo WhatsApp sem perder vendas.`} /><small>Quanto mais contexto você der, mais útil será a primeira entrega.</small></label>
+
+        <div className="creation-step"><span>03</span><div><b>Capacidades iniciais</b><small>O agente vai considerar estas escolhas ao planejar o MVP.</small></div></div>
+        <div className="creation-features">
+          <label><input type="checkbox" checked={features.auth} onChange={() => toggleFeature('auth')} /><span><Icon name="shield" size={16} /><b>Login seguro</b><small>Contas e acesso por usuário</small></span></label>
+          <label><input type="checkbox" checked={features.memory} onChange={() => toggleFeature('memory')} /><span><Icon name="database" size={16} /><b>Memória e dados</b><small>Supabase e histórico persistente</small></span></label>
+          <label><input type="checkbox" checked={features.integrations} onChange={() => toggleFeature('integrations')} /><span><Icon name="workflow" size={16} /><b>Integrações</b><small>APIs, webhooks e automações</small></span></label>
+        </div>
+
+        <div className="creation-action"><div><span><Icon name="spark" size={17} /></span><p><b>O agente vai estruturar a solução.</b><small>Escopo, arquitetura, arquivos, código essencial e próximos passos.</small></p></div><button onClick={createProject}>Criar projeto <Icon name="send" size={16} /></button></div>
+        {!isLive && <p className="creation-note">Conecte um provedor nas configurações para receber uma resposta de IA real. Sem conexão, o Zion explica como ativar o modo de criação.</p>}
+      </div>
+    </div>
+  </section>
 }
 
 function SettingsModal({ provider, setProvider, health, apiBaseUrl, setApiBaseUrl, onClose }) {
