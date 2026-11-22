@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { freeStack, providerOptions, starterPrompts } from './catalog'
 import { getInitialApiBaseUrl, normalizeApiBaseUrl, readAgentHealth, requestAgent } from './api'
 import './styles.css'
+import './mobile.css'
 
 const welcomeMessage = {
   id: 'welcome',
@@ -86,6 +87,22 @@ function App() {
       .then((data) => setHealth({ loading: false, configured: data.configured || [] }))
       .catch(() => setHealth({ loading: false, configured: [] }))
   }, [apiBaseUrl])
+
+  useEffect(() => {
+    // Mantém a área útil estável no WebView Android, inclusive quando o teclado abre.
+    const viewport = window.visualViewport
+    const syncViewportHeight = () => {
+      const height = viewport?.height || window.innerHeight
+      document.documentElement.style.setProperty('--app-viewport-height', `${Math.round(height)}px`)
+    }
+    syncViewportHeight()
+    window.addEventListener('resize', syncViewportHeight)
+    viewport?.addEventListener('resize', syncViewportHeight)
+    return () => {
+      window.removeEventListener('resize', syncViewportHeight)
+      viewport?.removeEventListener('resize', syncViewportHeight)
+    }
+  }, [])
 
   function notify(message) {
     setToast(message)
