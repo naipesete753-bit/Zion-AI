@@ -53,7 +53,7 @@ O Zion também é um aplicativo Android nativo via **Capacitor 7**. O código we
 
 ### Gerar um APK de teste
 
-Pré-requisitos locais: Node 22+, JDK 17 e Android SDK com API 35.
+Pré-requisitos locais: Node 22+, JDK 21 e Android SDK com API 35.
 
 ```bash
 npm install
