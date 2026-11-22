@@ -72,7 +72,7 @@ android/app/build/outputs/apk/debug/app-debug.apk
 npm run android:open
 ```
 
-Há também um workflow de GitHub Actions que monta o APK de teste e o publica como artefato **zion-ai-debug-apk** a cada push/PR. Um APK `debug` pode ser instalado para testes, mas uma publicação na Play Store exige assinatura de release e uma chave que não deve ser versionada.
+Há também um workflow de GitHub Actions que monta o APK de teste a cada push/PR. Em pushes, ele atualiza automaticamente um arquivo de download direto em [`downloads/Zion-AI-debug.apk`](downloads/Zion-AI-debug.apk), além de publicar o artefato temporário **zion-ai-debug-apk**. Um APK `debug` pode ser instalado para testes, mas uma publicação na Play Store exige assinatura de release e uma chave que não deve ser versionada.
 
 ### Conectar o APK à IA
 

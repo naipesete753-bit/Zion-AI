@@ -26,6 +26,10 @@ jobs:
 
   android-apk:
     name: Build Android debug APK
+    # Evita recriar o APK quando a própria automação publica o arquivo atualizado.
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,3 +76,19 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Publish direct APK download
+        if: github.event_name == 'push'
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          mkdir -p downloads
+          cp android/app/build/outputs/apk/debug/app-debug.apk downloads/Zion-AI-debug.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f downloads/Zion-AI-debug.apk
+          if git diff --cached --quiet; then
+            echo "O APK publicado já está atualizado."
+            exit 0
+          fi
+          git commit -m "build: update Android debug APK [skip ci]"
+          git push origin "HEAD:${BRANCH_NAME}"
