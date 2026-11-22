@@ -48,6 +48,8 @@ jobs:
         working-directory: android
         shell: bash
         run: |
+          # O runner executa bash com -e; desativamos temporariamente para publicar o erro do Gradle como anotação.
+          set +e
           set -o pipefail
           ./gradlew assembleDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/zion-gradle.log"
           build_status=${PIPESTATUS[0]}
